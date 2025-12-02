@@ -4,6 +4,7 @@ import { VocabularyWord } from "../types";
 export const generateVocabularySet = async (): Promise<{ theme: string; words: VocabularyWord[] }> => {
   try {
     const res = await fetch('/api/generate', { method: 'POST' });
+    if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     const wordsWithIds: VocabularyWord[] = (data.words || []).map((w: any) => ({ ...w, id: crypto.randomUUID() }));
     return { theme: data.theme || 'Fun Words', words: wordsWithIds };
@@ -32,6 +33,7 @@ export const generateVocabularySet = async (): Promise<{ theme: string; words: V
 export const generateWordImage = async (word: string, theme: string): Promise<string | undefined> => {
   try {
     const res = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ word, theme }) });
+    if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     return data.imageUrl || undefined;
   } catch {
@@ -43,6 +45,7 @@ export const generateWordImage = async (word: string, theme: string): Promise<st
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
     const res = await fetch('/api/tts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) });
+    if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     return data.audio || null;
   } catch {
