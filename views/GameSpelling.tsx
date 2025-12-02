@@ -43,8 +43,12 @@ const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete }) => {
         const formedWord = newPlaced.join('');
         if (formedWord === targetWord) {
             setIsSuccess(true);
-            const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/pang/pop.mp3'); // Simple pop sound
-            audio.play().catch(() => {});
+            try {
+              const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/pang/pop.mp3'); 
+              audio.play().catch(e => console.log("Audio play failed silently", e));
+            } catch (e) {
+              // Ignore audio errors
+            }
         }
     }
   };

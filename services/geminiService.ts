@@ -1,8 +1,18 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { VocabularyWord } from "../types";
-import { decodeBase64 } from "./audioUtils";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+// Helper to clean JSON if the model wraps it in markdown blocks
+const cleanJson = (text: string) => {
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.replace(/^```json/, "").replace(/```$/, "");
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```/, "").replace(/```$/, "");
+  }
+  return cleaned.trim();
+};
 
 // 1. Generate Theme and Words (JSON)
 export const generateVocabularySet = async (): Promise<{ theme: string; words: VocabularyWord[] }> => {
@@ -48,18 +58,24 @@ export const generateVocabularySet = async (): Promise<{ theme: string; words: V
     },
   });
 
-  const data = JSON.parse(response.text || "{}");
-  
-  // Add IDs locally
-  const wordsWithIds = (data.words || []).map((w: any) => ({
-    ...w,
-    id: crypto.randomUUID(),
-  }));
+  try {
+    const cleanText = cleanJson(response.text || "{}");
+    const data = JSON.parse(cleanText);
+    
+    // Add IDs locally
+    const wordsWithIds = (data.words || []).map((w: any) => ({
+      ...w,
+      id: crypto.randomUUID(),
+    }));
 
-  return {
-    theme: data.theme || "Fun Words",
-    words: wordsWithIds,
-  };
+    return {
+      theme: data.theme || "Fun Words",
+      words: wordsWithIds,
+    };
+  } catch (e) {
+    console.error("JSON Parse Error", e);
+    throw new Error("Failed to parse game data");
+  }
 };
 
 // 2. Generate Image for a Word
@@ -90,7 +106,7 @@ export const generateWordImage = async (word: string, theme: string): Promise<st
   return undefined;
 };
  
-// 3. Generate Speech (TTS
+// 3. Generate Speech (TTS)
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
     const model = "gemini-2.5-flash-preview-tts";
