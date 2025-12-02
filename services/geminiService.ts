@@ -1,134 +1,51 @@
-import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { VocabularyWord } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
-// Helper to clean JSON if the model wraps it in markdown blocks
-const cleanJson = (text: string) => {
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.replace(/^```json/, "").replace(/```$/, "");
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```/, "").replace(/```$/, "");
-  }
-  return cleaned.trim();
-};
 
 // 1. Generate Theme and Words (JSON)
 export const generateVocabularySet = async (): Promise<{ theme: string; words: VocabularyWord[] }> => {
-  const model = "gemini-2.5-flash";
-  
-  const prompt = `
-    Generate a random, fun theme suitable for children (e.g., Space, Jungle Animals, Superheroes, Fruits, Colors, Under the Sea).
-    Then, list exactly 10 English vocabulary words related to this theme.
-    For each word, provide:
-    - The word itself
-    - Phonetic pronunciation (simple)
-    - Chinese meaning (suitable for kids)
-    - A simple example sentence in English
-    - The Chinese translation of the example sentence.
-  `;
-
-  const response = await ai.models.generateContent({
-    model,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          theme: { type: Type.STRING, description: "The chosen theme" },
-          words: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                word: { type: Type.STRING },
-                pronunciation: { type: Type.STRING },
-                chinese: { type: Type.STRING },
-                example: { type: Type.STRING },
-                exampleChinese: { type: Type.STRING },
-              },
-              required: ["word", "pronunciation", "chinese", "example", "exampleChinese"],
-            },
-          },
-        },
-        required: ["theme", "words"],
-      },
-    },
-  });
-
   try {
-    const cleanText = cleanJson(response.text || "{}");
-    const data = JSON.parse(cleanText);
-    
-    // Add IDs locally
-    const wordsWithIds = (data.words || []).map((w: any) => ({
-      ...w,
-      id: crypto.randomUUID(),
-    }));
-
-    return {
-      theme: data.theme || "Fun Words",
-      words: wordsWithIds,
-    };
-  } catch (e) {
-    console.error("JSON Parse Error", e);
-    throw new Error("Failed to parse game data");
+    const res = await fetch('/api/generate', { method: 'POST' });
+    const data = await res.json();
+    const wordsWithIds: VocabularyWord[] = (data.words || []).map((w: any) => ({ ...w, id: crypto.randomUUID() }));
+    return { theme: data.theme || 'Fun Words', words: wordsWithIds };
+  } catch {
+    const fallback = {
+      theme: 'Fruits',
+      words: [
+        { word: 'apple', pronunciation: 'ˈæpəl', chinese: '苹果', example: 'I eat an apple.', exampleChinese: '我吃一个苹果。' },
+        { word: 'banana', pronunciation: 'bəˈnænə', chinese: '香蕉', example: 'Bananas are yellow.', exampleChinese: '香蕉是黄色的。' },
+        { word: 'orange', pronunciation: 'ˈɔːrɪndʒ', chinese: '橙子', example: 'The orange is sweet.', exampleChinese: '橙子很甜。' },
+        { word: 'grape', pronunciation: 'ɡreɪp', chinese: '葡萄', example: 'Grapes grow in bunches.', exampleChinese: '葡萄成串生长。' },
+        { word: 'strawberry', pronunciation: 'ˈstrɔːˌbɛri', chinese: '草莓', example: 'She likes strawberry cake.', exampleChinese: '她喜欢草莓蛋糕。' },
+        { word: 'watermelon', pronunciation: 'ˈwɔːtərˌmɛlən', chinese: '西瓜', example: 'We share a watermelon.', exampleChinese: '我们分享一个西瓜。' },
+        { word: 'pineapple', pronunciation: 'ˈpaɪˌnæpəl', chinese: '菠萝', example: 'Pineapple is juicy.', exampleChinese: '菠萝很多汁。' },
+        { word: 'cherry', pronunciation: 'ˈtʃɛri', chinese: '樱桃', example: 'The cherry is small.', exampleChinese: '樱桃很小。' },
+        { word: 'mango', pronunciation: 'ˈmæŋɡoʊ', chinese: '芒果', example: 'He loves mango juice.', exampleChinese: '他喜欢芒果汁。' },
+        { word: 'peach', pronunciation: 'piːtʃ', chinese: '桃子', example: 'Peaches are soft.', exampleChinese: '桃子很柔软。' }
+      ]
+    } as { theme: string; words: Omit<VocabularyWord, 'id'>[] };
+    const wordsWithIds: VocabularyWord[] = fallback.words.map(w => ({ ...w, id: crypto.randomUUID() }));
+    return { theme: fallback.theme, words: wordsWithIds };
   }
 };
 
 // 2. Generate Image for a Word
 export const generateWordImage = async (word: string, theme: string): Promise<string | undefined> => {
   try {
-    const model = "gemini-2.5-flash-image";
-    const prompt = `A cute, colorful, flat vector illustration of ${word} (theme: ${theme}) on a solid white background. No text. Suitable for children's flashcards. High quality.`;
-
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        imageConfig: {
-          aspectRatio: "1:1",
-        },
-      },
-    });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-  } catch (error) {
-    console.error(`Failed to generate image for ${word}:`, error);
-    return undefined; // Fallback will be handled by UI
+    const res = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ word, theme }) });
+    const data = await res.json();
+    return data.imageUrl || undefined;
+  } catch {
+    return undefined;
   }
-  return undefined;
 };
  
 // 3. Generate Speech (TTS)
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
-    const model = "gemini-2.5-flash-preview-tts";
-    const response = await ai.models.generateContent({
-      model,
-      contents: {
-        parts: [{ text }],
-      },
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Kore' }, // 'Puck' or 'Kore' sound friendly
-          },
-        },
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    return base64Audio || null;
-  } catch (error) {
-    console.error("TTS Error:", error);
+    const res = await fetch('/api/tts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) });
+    const data = await res.json();
+    return data.audio || null;
+  } catch {
     return null;
   }
 };
