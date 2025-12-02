@@ -2,7 +2,7 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { VocabularyWord } from "../types";
 import { decodeBase64 } from "./audioUtils";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 // 1. Generate Theme and Words (JSON)
 export const generateVocabularySet = async (): Promise<{ theme: string; words: VocabularyWord[] }> => {
