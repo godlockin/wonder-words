@@ -89,8 +89,8 @@ export const generateWordImage = async (word: string, theme: string): Promise<st
   }
   return undefined;
 };
-
-// 3. Generate Speech (TTS)
+ 
+// 3. Generate Speech (TTS
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
     const model = "gemini-2.5-flash-preview-tts";
