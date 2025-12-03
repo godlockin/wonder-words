@@ -7,14 +7,15 @@ import { generateSpeech } from '../services/geminiService';
 interface GameMatchingProps {
   words: VocabularyWord[];
   onComplete: (score: number) => void;
+  onMistake: (word: VocabularyWord) => void;
 }
 
-const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete }) => {
+const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete, onMistake }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  
+
   const currentWord = words[currentIndex];
 
   // Generate 4 options including the correct one
@@ -27,25 +28,27 @@ const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete }) => {
   }, [currentWord, words]);
 
   useEffect(() => {
-     // Auto-pronounce word when it appears
-     const play = async () => {
-         try {
-             const audio = await generateSpeech(currentWord.word);
-             if(audio) await playAudioData(audio);
-         } catch(e) {}
-     }
-     play();
+    // Auto-pronounce word when it appears
+    const play = async () => {
+      try {
+        const audio = await generateSpeech(currentWord.word);
+        if (audio) await playAudioData(audio);
+      } catch (e) { }
+    }
+    play();
   }, [currentIndex, currentWord]);
 
   const handleSelect = (id: string) => {
     if (selectedId) return; // Block input if already selected
     setSelectedId(id);
-    
+
     const correct = id === currentWord.id;
     setIsCorrect(correct);
-    
+
     if (correct) {
       setScore(s => s + 10);
+    } else {
+      onMistake(currentWord);
     }
 
     setTimeout(() => {
@@ -62,8 +65,8 @@ const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 max-w-4xl mx-auto">
       <div className="w-full flex justify-between items-center mb-6">
-         <div className="text-xl font-bold text-gray-400">Question {currentIndex + 1}/{words.length}</div>
-         <div className="text-xl font-bold text-yellow-500">Score: {score}</div>
+        <div className="text-xl font-bold text-gray-400">Question {currentIndex + 1}/{words.length}</div>
+        <div className="text-xl font-bold text-yellow-500">Score: {score}</div>
       </div>
 
       <h2 className="text-4xl font-black text-blue-600 mb-8 animate-bounce">
@@ -74,9 +77,9 @@ const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete }) => {
         {options.map((option) => {
           let ringColor = "ring-gray-100";
           if (selectedId === option.id) {
-             ringColor = isCorrect && option.id === currentWord.id ? "ring-green-500 bg-green-50" : "ring-red-500 bg-red-50";
+            ringColor = isCorrect && option.id === currentWord.id ? "ring-green-500 bg-green-50" : "ring-red-500 bg-red-50";
           } else if (selectedId && option.id === currentWord.id) {
-             ringColor = "ring-green-500 bg-green-50"; // Show correct answer if wrong selected
+            ringColor = "ring-green-500 bg-green-50"; // Show correct answer if wrong selected
           }
 
           return (
@@ -96,13 +99,13 @@ const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete }) => {
                 <span className="text-2xl">{option.word}</span>
               )}
               {selectedId === option.id && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                      {isCorrect && option.id === currentWord.id ? (
-                          <span className="text-6xl">✅</span>
-                      ) : (
-                          <span className="text-6xl">❌</span>
-                      )}
-                  </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                  {isCorrect && option.id === currentWord.id ? (
+                    <span className="text-6xl">✅</span>
+                  ) : (
+                    <span className="text-6xl">❌</span>
+                  )}
+                </div>
               )}
             </button>
           );
@@ -110,8 +113,8 @@ const GameMatching: React.FC<GameMatchingProps> = ({ words, onComplete }) => {
       </div>
 
       <div className="mt-8 h-8 text-center">
-         {isCorrect === true && <span className="text-green-600 font-bold text-xl">Great Job!</span>}
-         {isCorrect === false && <span className="text-red-500 font-bold text-xl">Oops! It's the {currentWord.chinese}</span>}
+        {isCorrect === true && <span className="text-green-600 font-bold text-xl">Great Job!</span>}
+        {isCorrect === false && <span className="text-red-500 font-bold text-xl">Oops! It's the {currentWord.chinese}</span>}
       </div>
     </div>
   );

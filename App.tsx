@@ -16,12 +16,14 @@ const App: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState('');
   const [learningIndex, setLearningIndex] = useState(0);
   const [finalScore, setFinalScore] = useState(0);
+  const [incorrectWords, setIncorrectWords] = useState<Set<string>>(new Set());
 
   // Start the session
   const handleStart = async (customTheme?: string) => {
     setPhase(GamePhase.GENERATING);
     setLoadingProgress(10);
     setLoadingStatus(customTheme ? `Creating words for "${customTheme}"...` : 'Thinking of a fun theme...');
+    setIncorrectWords(new Set()); // Reset mistakes
 
     try {
       // 1. Generate Text
@@ -74,6 +76,14 @@ const App: React.FC = () => {
     setFinalScore(score);
     setPhase(GamePhase.SUMMARY);
   }
+
+  const handleMistake = (word: VocabularyWord) => {
+    setIncorrectWords(prev => {
+      const newSet = new Set(prev);
+      newSet.add(word.id);
+      return newSet;
+    });
+  };
 
   // Render Views
   if (phase === GamePhase.WELCOME) {
@@ -162,19 +172,38 @@ const App: React.FC = () => {
   }
 
   if (phase === GamePhase.GAME_MATCHING) {
-    return <GameMatching words={words} onComplete={handleGameComplete} />;
+    return <GameMatching words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
   }
 
   if (phase === GamePhase.GAME_SPELLING) {
-    return <GameSpelling words={words} onComplete={handleGameComplete} />;
+    return <GameSpelling words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
   }
 
   if (phase === GamePhase.SUMMARY) {
+    const mistakes = words.filter(w => incorrectWords.has(w.id));
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-fade-in">
         <div className="text-8xl mb-6 animate-bounce">🏆</div>
         <h1 className="text-5xl font-black text-yellow-500 mb-2">Awesome!</h1>
         <p className="text-2xl text-gray-600 mb-8">You scored {finalScore} points!</p>
+
+        {mistakes.length > 0 && (
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h3 className="text-xl font-bold text-red-500 mb-4">Let's Review these words:</h3>
+            <div className="grid grid-cols-1 gap-2">
+              {mistakes.map(word => (
+                <div key={word.id} className="flex items-center gap-4 p-2 border-b border-gray-100 last:border-0">
+                  {word.imageUrl && <img src={word.imageUrl} alt={word.word} className="w-12 h-12 rounded-lg object-cover" />}
+                  <div className="text-left">
+                    <div className="font-bold text-gray-800">{word.word}</div>
+                    <div className="text-sm text-gray-500">{word.chinese}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-4 w-full max-w-xs">
           <Button onClick={() => setPhase(GamePhase.GAME_MENU)}>Play Another Game</Button>

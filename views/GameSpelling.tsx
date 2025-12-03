@@ -5,9 +5,10 @@ import Button from '../components/Button';
 interface GameSpellingProps {
   words: VocabularyWord[];
   onComplete: (score: number) => void;
+  onMistake: (word: VocabularyWord) => void;
 }
 
-const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete }) => {
+const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete, onMistake }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [shuffledLetters, setShuffledLetters] = useState<{ char: string, id: number }[]>([]);
@@ -43,6 +44,7 @@ const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete }) => {
     // Check correctness for feedback
     if (char !== targetWord[emptyIndex]) {
       setMistakeCount(prev => prev + 1);
+      onMistake(currentWord);
     }
 
     // Check win condition immediately
@@ -53,9 +55,7 @@ const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete }) => {
         try {
           const audio = new Audio('https://codeskulptor-demos.commondatastorage.googleapis.com/pang/pop.mp3');
           audio.play().catch(e => console.log("Audio play failed silently", e));
-        } catch (e) {
-          // Ignore audio errors
-        }
+        } catch (e) { }
       }
     }
   };
@@ -128,6 +128,21 @@ const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete }) => {
     }
   };
 
+  const handlePlacedLetterClick = (index: number) => {
+    if (isSuccess) return;
+
+    const char = placedLetters[index];
+    if (!char) return;
+
+    // Remove from placed
+    const newPlaced = [...placedLetters];
+    newPlaced[index] = null;
+    setPlacedLetters(newPlaced);
+
+    // Add back to shuffled
+    setShuffledLetters(prev => [...prev, { char, id: Date.now() + Math.random() }]);
+  };
+
   const handleNext = () => {
     if (isSuccess) setScore(s => s + 10);
 
@@ -160,12 +175,13 @@ const GameSpelling: React.FC<GameSpellingProps> = ({ words, onComplete }) => {
           return (
             <div
               key={idx}
+              onClick={() => handlePlacedLetterClick(idx)}
               className={`
                     w-12 h-14 sm:w-16 sm:h-20 border-b-4 text-3xl sm:text-4xl font-bold flex items-center justify-center
-                    ${!char ? 'border-gray-300' : ''}
+                    ${!char ? 'border-gray-300' : 'cursor-pointer hover:bg-gray-50'}
                     ${isCorrect ? 'border-blue-500 text-blue-600' : ''}
                     ${isWrong ? 'border-red-400 text-red-500 bg-red-50' : ''}
-                    ${isSuccess ? '!text-green-500 !border-green-500 !bg-green-50' : ''}
+                    ${isSuccess ? '!text-green-500 !border-green-500 !bg-green-50 !cursor-default' : ''}
                 `}
             >
               {char}
