@@ -961,12 +961,15 @@ function id() {
   return s;
 }
 __name(id, "id");
-async function handleGenerate(env2) {
+async function handleGenerate(env2, req) {
   const key = env2.API_KEY;
   console.log("[api/generate] start", { hasKey: !!key });
   try {
     if (key) {
-      const prompt = `Generate a random, fun kid-friendly theme and exactly 10 words. Each word must include: English word, IPA pronunciation, Chinese translation (\u4E2D\u6587\u7FFB\u8BD1), English example sentence, and Chinese translation of the example (\u4F8B\u53E5\u4E2D\u6587\u7FFB\u8BD1).`;
+      const bodyData = await json(req);
+      const customTheme = bodyData?.theme;
+      console.log("[api/generate] customTheme", { customTheme });
+      const prompt = customTheme ? `Generate exactly 10 words for the theme "${customTheme}". Each word must include: English word, IPA pronunciation, Chinese translation (\u4E2D\u6587\u7FFB\u8BD1), English example sentence, and Chinese translation of the example (\u4F8B\u53E5\u4E2D\u6587\u7FFB\u8BD1). The theme should be "${customTheme}".` : `Generate a random, fun kid-friendly theme and exactly 10 words. Each word must include: English word, IPA pronunciation, Chinese translation (\u4E2D\u6587\u7FFB\u8BD1), English example sentence, and Chinese translation of the example (\u4F8B\u53E5\u4E2D\u6587\u7FFB\u8BD1).`;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
       const body = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -1094,7 +1097,7 @@ var worker_default = {
   async fetch(request, env2) {
     const url = new URL(request.url);
     if (url.pathname === "/api/generate" && request.method === "POST") {
-      return handleGenerate(env2);
+      return handleGenerate(env2, request);
     }
     if (url.pathname === "/api/image" && request.method === "POST") {
       return handleImage(request, env2);
@@ -1155,7 +1158,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-jMp8q0/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-SO02a3/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -1187,7 +1190,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-jMp8q0/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-SO02a3/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

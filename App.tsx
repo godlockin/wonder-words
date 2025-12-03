@@ -18,14 +18,14 @@ const App: React.FC = () => {
   const [finalScore, setFinalScore] = useState(0);
 
   // Start the session
-  const handleStart = async () => {
+  const handleStart = async (customTheme?: string) => {
     setPhase(GamePhase.GENERATING);
     setLoadingProgress(10);
-    setLoadingStatus('Thinking of a fun theme...');
+    setLoadingStatus(customTheme ? `Creating words for "${customTheme}"...` : 'Thinking of a fun theme...');
 
     try {
       // 1. Generate Text
-      const vocabData = await generateVocabularySet();
+      const vocabData = await generateVocabularySet(customTheme);
       setTheme(vocabData.theme);
       setWords(vocabData.words);
       setLoadingProgress(40);
@@ -91,7 +91,7 @@ const App: React.FC = () => {
           <h2 className="text-xl font-bold text-gray-500 uppercase tracking-widest">{theme}</h2>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleStart}
+              onClick={() => setPhase(GamePhase.WELCOME)}
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg"
               title="Generate new theme"
             >
@@ -155,7 +155,7 @@ const App: React.FC = () => {
 
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => setPhase(GamePhase.LEARNING)} size="sm">Back to Words</Button>
-          <Button variant="secondary" onClick={handleStart} size="sm">🔄 New Theme</Button>
+          <Button variant="secondary" onClick={() => setPhase(GamePhase.WELCOME)} size="sm">🔄 New Theme</Button>
         </div>
       </div>
     )

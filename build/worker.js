@@ -13,12 +13,21 @@ function id() {
   return s;
 }
 
-async function handleGenerate(env) {
+async function handleGenerate(env, req) {
   const key = env.API_KEY;
   console.log('[api/generate] start', { hasKey: !!key });
   try {
     if (key) {
-      const prompt = `Generate a random, fun kid-friendly theme and exactly 10 words. Each word must include: English word, IPA pronunciation, Chinese translation (中文翻译), English example sentence, and Chinese translation of the example (例句中文翻译).`;
+      // Read custom theme from request body
+      const bodyData = await json(req);
+      const customTheme = bodyData?.theme;
+      console.log('[api/generate] customTheme', { customTheme });
+
+      // Generate prompt based on whether custom theme is provided
+      const prompt = customTheme
+        ? `Generate exactly 10 words for the theme "${customTheme}". Each word must include: English word, IPA pronunciation, Chinese translation (中文翻译), English example sentence, and Chinese translation of the example (例句中文翻译). The theme should be "${customTheme}".`
+        : `Generate a random, fun kid-friendly theme and exactly 10 words. Each word must include: English word, IPA pronunciation, Chinese translation (中文翻译), English example sentence, and Chinese translation of the example (例句中文翻译).`;
+
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
       const body = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -140,7 +149,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/api/generate" && request.method === "POST") {
-      return handleGenerate(env);
+      return handleGenerate(env, request);
     }
     if (url.pathname === "/api/image" && request.method === "POST") {
       return handleImage(request, env);

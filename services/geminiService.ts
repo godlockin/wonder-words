@@ -1,10 +1,14 @@
 import { VocabularyWord } from "../types";
 
 // 1. Generate Theme and Words (JSON)
-export const generateVocabularySet = async (): Promise<{ theme: string; words: VocabularyWord[] }> => {
+export const generateVocabularySet = async (customTheme?: string): Promise<{ theme: string; words: VocabularyWord[] }> => {
   try {
-    console.log('client: /api/generate request');
-    const res = await fetch('/api/generate', { method: 'POST' });
+    console.log('client: /api/generate request', { customTheme });
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ theme: customTheme || undefined })
+    });
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     console.log('client: /api/generate ok', { theme: data?.theme, count: Array.isArray(data?.words) ? data.words.length : 0 });
@@ -46,7 +50,7 @@ export const generateWordImage = async (word: string, theme: string): Promise<st
     return undefined;
   }
 };
- 
+
 // 3. Generate Speech (TTS)
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
