@@ -1,3 +1,21 @@
+// Model Configuration
+// Different models for different tasks to optimize performance and cost
+const MODELS = {
+  // Text generation: Using latest Flash model for fast and efficient text generation
+  TEXT_GENERATION: 'gemini-flash-latest',
+
+  // Image generation: Using specialized image generation model
+  IMAGE_GENERATION: 'gemini-3-pro-image-preview',
+
+  // Text-to-speech: Using TTS preview model for voice synthesis
+  TEXT_TO_SPEECH: 'gemini-2.5-flash-preview-tts'
+};
+
+// Helper function to build model URL
+function getModelUrl(modelName) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+}
+
 async function json(req) {
   try {
     const body = await req.text();
@@ -28,7 +46,7 @@ async function handleGenerate(env, req) {
         ? `Generate exactly 10 words for the theme "${customTheme}". Each word must include: English word, IPA pronunciation, Chinese translation (中文翻译), English example sentence, and Chinese translation of the example (例句中文翻译). The theme should be "${customTheme}".`
         : `Generate a random, fun kid-friendly theme and exactly 10 words. Each word must include: English word, IPA pronunciation, Chinese translation (中文翻译), English example sentence, and Chinese translation of the example (例句中文翻译).`;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+      const url = getModelUrl(MODELS.TEXT_GENERATION);
       const body = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
@@ -98,7 +116,7 @@ async function handleImage(req, env) {
     const { word, theme } = await json(req);
     console.log('[api/image] start', { hasKey: !!key, word, theme });
     if (key && word) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`;
+      const url = getModelUrl(MODELS.IMAGE_GENERATION);
       const body = { contents: [{ parts: [{ text: `A cute, colorful, flat vector illustration of ${word} (theme: ${theme}) on a solid white background. No text.` }] }], generationConfig: { imageConfig: { aspectRatio: '1:1' } } };
       console.log('[api/image] request', { url });
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
@@ -126,7 +144,7 @@ async function handleTTS(req, env) {
     const { text } = await json(req);
     console.log('[api/tts] start', { hasKey: !!key, text });
     if (key && text) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent`;
+      const url = getModelUrl(MODELS.TEXT_TO_SPEECH);
       const body = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } } };
       console.log('[api/tts] request', { url });
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
