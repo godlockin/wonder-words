@@ -9,6 +9,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8788',
+          changeOrigin: true,
+        },
+      },
+    },
     define: {
       // This is crucial: it exposes the Cloudflare environment variable 
       // (which is available at build time) to the client-side code as process.env.API_KEY

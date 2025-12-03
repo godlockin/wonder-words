@@ -18,12 +18,33 @@ async function handleGenerate(env) {
   console.log('[api/generate] start', { hasKey: !!key });
   try {
     if (key) {
-      const prompt = `Generate a random, fun kid-friendly theme and exactly 10 words with pronunciation, Chinese meaning, example and its Chinese translation.`;
+      const prompt = `Generate a random, fun kid-friendly theme and exactly 10 words. Each word must include: English word, IPA pronunciation, Chinese translation (中文翻译), English example sentence, and Chinese translation of the example (例句中文翻译).`;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
       const body = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              theme: { type: "string", description: "A fun, kid-friendly theme name" },
+              words: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    word: { type: "string", description: "English word" },
+                    pronunciation: { type: "string", description: "IPA pronunciation" },
+                    chinese: { type: "string", description: "Chinese translation (中文)" },
+                    example: { type: "string", description: "English example sentence" },
+                    exampleChinese: { type: "string", description: "Chinese translation of example (中文例句)" }
+                  },
+                  required: ["word", "pronunciation", "chinese", "example", "exampleChinese"]
+                }
+              }
+            },
+            required: ["theme", "words"]
+          }
         }
       };
       console.log('[api/generate] request', { url });
