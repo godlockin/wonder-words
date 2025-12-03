@@ -15,6 +15,7 @@ function id() {
 
 async function handleGenerate(env) {
   const key = env.API_KEY;
+  console.log('[api/generate] start', { hasKey: !!key });
   try {
     if (key) {
       const prompt = `Generate a random, fun kid-friendly theme and exactly 10 words with pronunciation, Chinese meaning, example and its Chinese translation.`;
@@ -25,16 +26,20 @@ async function handleGenerate(env) {
           responseMimeType: "application/json"
         }
       };
+      console.log('[api/generate] request', { url });
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      console.log('[api/generate] response', { status: res.status });
       if (res.ok) {
         const out = await res.json();
         const text = out?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        console.log('[api/generate] text length', { length: (text || '').length });
         const data = JSON.parse(text);
+        console.log('[api/generate] parsed', { theme: data?.theme, words: Array.isArray(data?.words) ? data.words.length : 0 });
         const words = (data.words || []).map(w => ({ ...w, id: id() }));
         return new Response(JSON.stringify({ theme: data.theme || 'Fun Words', words }), { headers: { 'content-type': 'application/json' } });
       }
     }
-  } catch (e) {}
+  } catch (e) { console.log('[api/generate] error', e); }
   const data = {
     theme: "Fruits",
     words: [
@@ -51,6 +56,7 @@ async function handleGenerate(env) {
     ]
   };
   const words = data.words.map(w => ({ ...w, id: id() }));
+  console.log('[api/generate] fallback fruits');
   return new Response(JSON.stringify({ theme: data.theme, words }), { headers: { "content-type": "application/json" } });
 }
 
@@ -58,21 +64,27 @@ async function handleImage(req, env) {
   const key = env.API_KEY;
   try {
     const { word, theme } = await json(req);
+    console.log('[api/image] start', { hasKey: !!key, word, theme });
     if (key && word) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`;
       const body = { contents: [{ parts: [{ text: `A cute, colorful, flat vector illustration of ${word} (theme: ${theme}) on a solid white background. No text.` }] }], generationConfig: { imageConfig: { aspectRatio: '1:1' } } };
+      console.log('[api/image] request', { url });
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      console.log('[api/image] response', { status: res.status });
       if (res.ok) {
         const out = await res.json();
         const parts = out?.candidates?.[0]?.content?.parts || [];
+        console.log('[api/image] parts', { count: parts.length });
         for (const p of parts) {
           if (p.inlineData?.data) {
+            console.log('[api/image] inlineData', { size: p.inlineData.data.length });
             return new Response(JSON.stringify({ imageUrl: `data:image/png;base64,${p.inlineData.data}` }), { headers: { 'content-type': 'application/json' } });
           }
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { console.log('[api/image] error', e); }
+  console.log('[api/image] fallback null');
   return new Response(JSON.stringify({ imageUrl: null }), { headers: { "content-type": "application/json" } });
 }
 
@@ -80,17 +92,22 @@ async function handleTTS(req, env) {
   const key = env.API_KEY;
   try {
     const { text } = await json(req);
+    console.log('[api/tts] start', { hasKey: !!key, text });
     if (key && text) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${key}`;
       const body = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } } };
+      console.log('[api/tts] request', { url });
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      console.log('[api/tts] response', { status: res.status });
       if (res.ok) {
         const out = await res.json();
         const audio = out?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+        console.log('[api/tts] audio length', { length: audio ? audio.length : 0 });
         return new Response(JSON.stringify({ audio }), { headers: { 'content-type': 'application/json' } });
       }
     }
-  } catch (e) {}
+  } catch (e) { console.log('[api/tts] error', e); }
+  console.log('[api/tts] fallback null');
   return new Response(JSON.stringify({ audio: null }), { headers: { "content-type": "application/json" } });
 }
 

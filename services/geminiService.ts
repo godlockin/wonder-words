@@ -3,12 +3,15 @@ import { VocabularyWord } from "../types";
 // 1. Generate Theme and Words (JSON)
 export const generateVocabularySet = async (): Promise<{ theme: string; words: VocabularyWord[] }> => {
   try {
+    console.log('client: /api/generate request');
     const res = await fetch('/api/generate', { method: 'POST' });
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
+    console.log('client: /api/generate ok', { theme: data?.theme, count: Array.isArray(data?.words) ? data.words.length : 0 });
     const wordsWithIds: VocabularyWord[] = (data.words || []).map((w: any) => ({ ...w, id: crypto.randomUUID() }));
     return { theme: data.theme || 'Fun Words', words: wordsWithIds };
-  } catch {
+  } catch (e) {
+    console.log('client: /api/generate fallback', e);
     const fallback = {
       theme: 'Fruits',
       words: [
@@ -32,11 +35,14 @@ export const generateVocabularySet = async (): Promise<{ theme: string; words: V
 // 2. Generate Image for a Word
 export const generateWordImage = async (word: string, theme: string): Promise<string | undefined> => {
   try {
+    console.log('client: /api/image request', { word, theme });
     const res = await fetch('/api/image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ word, theme }) });
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
+    console.log('client: /api/image ok', { hasImage: !!data?.imageUrl });
     return data.imageUrl || undefined;
-  } catch {
+  } catch (e) {
+    console.log('client: /api/image fallback', e);
     return undefined;
   }
 };
@@ -44,11 +50,14 @@ export const generateWordImage = async (word: string, theme: string): Promise<st
 // 3. Generate Speech (TTS)
 export const generateSpeech = async (text: string): Promise<string | null> => {
   try {
+    console.log('client: /api/tts request', { text });
     const res = await fetch('/api/tts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text }) });
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
+    console.log('client: /api/tts ok', { audioLen: data?.audio ? data.audio.length : 0 });
     return data.audio || null;
-  } catch {
+  } catch (e) {
+    console.log('client: /api/tts fallback', e);
     return null;
   }
 };
