@@ -19,18 +19,20 @@ async function handleGenerate(env) {
   try {
     if (key) {
       const prompt = `Generate a random, fun kid-friendly theme and exactly 10 words with pronunciation, Chinese meaning, example and its Chinese translation.`;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
       const body = {
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: "application/json"
         }
       };
       console.log('[api/generate] request', { url });
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
       console.log('[api/generate] response', { status: res.status });
       if (res.ok) {
         const out = await res.json();
+        const cand = out?.candidates?.[0];
+        console.log('[api/generate] meta', { finishReason: cand?.finishReason, safetyRatings: cand?.safetyRatings });
         const text = out?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         console.log('[api/generate] text length', { length: (text || '').length });
         const data = JSON.parse(text);
@@ -66,10 +68,10 @@ async function handleImage(req, env) {
     const { word, theme } = await json(req);
     console.log('[api/image] start', { hasKey: !!key, word, theme });
     if (key && word) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`;
       const body = { contents: [{ parts: [{ text: `A cute, colorful, flat vector illustration of ${word} (theme: ${theme}) on a solid white background. No text.` }] }], generationConfig: { imageConfig: { aspectRatio: '1:1' } } };
       console.log('[api/image] request', { url });
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
       console.log('[api/image] response', { status: res.status });
       if (res.ok) {
         const out = await res.json();
@@ -94,13 +96,15 @@ async function handleTTS(req, env) {
     const { text } = await json(req);
     console.log('[api/tts] start', { hasKey: !!key, text });
     if (key && text) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent`;
       const body = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } } };
       console.log('[api/tts] request', { url });
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body) });
       console.log('[api/tts] response', { status: res.status });
       if (res.ok) {
         const out = await res.json();
+        const cand = out?.candidates?.[0];
+        console.log('[api/tts] meta', { finishReason: cand?.finishReason, safetyRatings: cand?.safetyRatings });
         const audio = out?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
         console.log('[api/tts] audio length', { length: audio ? audio.length : 0 });
         return new Response(JSON.stringify({ audio }), { headers: { 'content-type': 'application/json' } });
