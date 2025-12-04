@@ -377,7 +377,7 @@ const GameCrossword: React.FC<GameCrosswordProps> = ({ words, onComplete, onMist
                                 <div key={`${x}-${y}`} className="relative w-8 h-8 sm:w-10 sm:h-10">
                                     {cell ? (
                                         <input
-                                            ref={el => inputRefs.current[y][x] = el}
+                                            ref={el => { inputRefs.current[y][x] = el; }}
                                             type="text"
                                             maxLength={1}
                                             value={userInputs[y][x]}
