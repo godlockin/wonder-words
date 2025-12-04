@@ -50,40 +50,35 @@ const App: React.FC = () => {
   };
 
   const generateImagesInBackground = async (initialWords: VocabularyWord[], theme: string) => {
-    const wordsCopy = [...initialWords];
-    const batchSize = 3;
-
-    for (let i = 0; i < wordsCopy.length; i += batchSize) {
-      const batch = wordsCopy.slice(i, i + batchSize);
-      await Promise.all(batch.map(async (word) => {
-        try {
-          const img = await generateWordImage(word.word, theme);
-          if (img) {
-            // Update state incrementally
-            setWords(prevWords => {
-              const updatedWords = prevWords.map(w => {
-                if (w.id === word.id) {
-                  return { ...w, imageUrl: img, loadedOrder: nextLoadOrder.current++ };
-                }
-                return w;
-              });
-
-              // Sort: Loaded words first (by loadedOrder), then unloaded words (stable/original order)
-              return updatedWords.sort((a, b) => {
-                if (a.loadedOrder !== undefined && b.loadedOrder !== undefined) {
-                  return a.loadedOrder - b.loadedOrder;
-                }
-                if (a.loadedOrder !== undefined) return -1; // a comes first
-                if (b.loadedOrder !== undefined) return 1;  // b comes first
-                return 0; // Keep original relative order
-              });
+    // Trigger ALL image generations immediately (fully parallel)
+    initialWords.forEach(async (word) => {
+      try {
+        const img = await generateWordImage(word.word, theme);
+        if (img) {
+          // Update state incrementally
+          setWords(prevWords => {
+            const updatedWords = prevWords.map(w => {
+              if (w.id === word.id) {
+                return { ...w, imageUrl: img, loadedOrder: nextLoadOrder.current++ };
+              }
+              return w;
             });
-          }
-        } catch (e) {
-          console.error("Failed to generate image for", word.word, e);
+
+            // Sort: Loaded words first (by loadedOrder), then unloaded words (stable/original order)
+            return updatedWords.sort((a, b) => {
+              if (a.loadedOrder !== undefined && b.loadedOrder !== undefined) {
+                return a.loadedOrder - b.loadedOrder;
+              }
+              if (a.loadedOrder !== undefined) return -1; // a comes first
+              if (b.loadedOrder !== undefined) return 1;  // b comes first
+              return 0; // Keep original relative order
+            });
+          });
         }
-      }));
-    }
+      } catch (e) {
+        console.error("Failed to generate image for", word.word, e);
+      }
+    });
   };
 
   const handleNextCard = () => {
