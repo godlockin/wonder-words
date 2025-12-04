@@ -5,8 +5,12 @@ import Welcome from './views/Welcome';
 import Loading from './views/Loading';
 import WordCard from './components/WordCard';
 import Button from './components/Button';
+import GameMenu from './views/GameMenu';
 import GameMatching from './views/GameMatching';
 import GameSpelling from './views/GameSpelling';
+import GameMemory from './views/GameMemory';
+import GameHangman from './views/GameHangman';
+import GameSpeed from './views/GameSpeed';
 
 const App: React.FC = () => {
   const [phase, setPhase] = useState<GamePhase>(GamePhase.WELCOME);
@@ -33,11 +37,6 @@ const App: React.FC = () => {
       setTheme(vocabData.theme);
       setWords(vocabData.words);
 
-      // IMMEDIATE TRANSITION: Go to learning phase right away!
-      setLoadingProgress(100);
-      setPhase(GamePhase.LEARNING);
-      setLearningIndex(0);
-
       // 2. Generate Images in Background
       // We use a non-awaited promise chain here to let the UI render
       generateImagesInBackground(vocabData.words, vocabData.theme);
@@ -50,6 +49,8 @@ const App: React.FC = () => {
   };
 
   const generateImagesInBackground = async (initialWords: VocabularyWord[], theme: string) => {
+    let firstImageLoaded = false;
+
     // Trigger ALL image generations immediately (fully parallel)
     initialWords.forEach(async (word) => {
       try {
@@ -74,6 +75,14 @@ const App: React.FC = () => {
               return 0; // Keep original relative order
             });
           });
+
+          // If this is the first image to load, transition to learning phase
+          if (!firstImageLoaded) {
+            firstImageLoaded = true;
+            setLoadingProgress(100);
+            setPhase(GamePhase.LEARNING);
+            setLearningIndex(0);
+          }
         }
       } catch (e) {
         console.error("Failed to generate image for", word.word, e);
@@ -165,33 +174,13 @@ const App: React.FC = () => {
 
   if (phase === GamePhase.GAME_MENU) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 space-y-8 animate-fade-in">
-        <div className="text-center">
-          <h1 className="text-4xl font-black text-gray-800">It's Play Time!</h1>
-          <p className="text-gray-500 mt-2">Choose a game to test your memory.</p>
-          <p className="text-sm text-gray-400 mt-1">Theme: <span className="font-semibold text-purple-600">{theme}</span></p>
-        </div>
-
-        <div className="grid gap-6 w-full max-w-md">
-          <div className="bg-white p-6 rounded-3xl shadow-lg border-b-8 border-purple-200 hover:border-purple-400 transition-colors cursor-pointer group" onClick={() => setPhase(GamePhase.GAME_MATCHING)}>
-            <div className="text-6xl mb-4 text-center group-hover:scale-110 transition-transform">🖼️</div>
-            <h3 className="text-2xl font-bold text-center text-purple-600">Picture Match</h3>
-            <p className="text-center text-gray-400">Match the word to the picture</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl shadow-lg border-b-8 border-orange-200 hover:border-orange-400 transition-colors cursor-pointer group" onClick={() => setPhase(GamePhase.GAME_SPELLING)}>
-            <div className="text-6xl mb-4 text-center group-hover:scale-110 transition-transform">🔤</div>
-            <h3 className="text-2xl font-bold text-center text-orange-600">Spelling Bee</h3>
-            <p className="text-center text-gray-400">Put the letters in order</p>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => setPhase(GamePhase.LEARNING)} size="sm">Back to Words</Button>
-          <Button variant="secondary" onClick={() => setPhase(GamePhase.WELCOME)} size="sm">🔄 New Theme</Button>
-        </div>
-      </div>
-    )
+      <GameMenu
+        theme={theme}
+        onSelectGame={setPhase}
+        onBack={() => setPhase(GamePhase.LEARNING)}
+        onNewTheme={() => setPhase(GamePhase.WELCOME)}
+      />
+    );
   }
 
   if (phase === GamePhase.GAME_MATCHING) {
@@ -200,6 +189,18 @@ const App: React.FC = () => {
 
   if (phase === GamePhase.GAME_SPELLING) {
     return <GameSpelling words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
+  }
+
+  if (phase === GamePhase.GAME_MEMORY) {
+    return <GameMemory words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
+  }
+
+  if (phase === GamePhase.GAME_HANGMAN) {
+    return <GameHangman words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
+  }
+
+  if (phase === GamePhase.GAME_SPEED) {
+    return <GameSpeed words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
   }
 
   if (phase === GamePhase.SUMMARY) {
