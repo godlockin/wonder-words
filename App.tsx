@@ -11,6 +11,7 @@ import GameSpelling from './views/GameSpelling';
 import GameMemory from './views/GameMemory';
 import GameHangman from './views/GameHangman';
 import GameSpeed from './views/GameSpeed';
+import GameCrossword from './views/GameCrossword';
 
 const App: React.FC = () => {
   const [phase, setPhase] = useState<GamePhase>(GamePhase.WELCOME);
@@ -201,6 +202,10 @@ const App: React.FC = () => {
 
   if (phase === GamePhase.GAME_SPEED) {
     return <GameSpeed words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
+  }
+
+  if (phase === GamePhase.GAME_CROSSWORD) {
+    return <GameCrossword words={words} onComplete={handleGameComplete} onMistake={handleMistake} />;
   }
 
   if (phase === GamePhase.SUMMARY) {

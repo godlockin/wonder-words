@@ -63,6 +63,15 @@ const GameMenu: React.FC<GameMenuProps> = ({ theme, onSelectGame, onBack, onNewT
                         <p className="text-sm text-gray-400">Don't let the words fall!</p>
                     </div>
                 </div>
+
+                {/* Crossword */}
+                <div className="bg-white p-4 rounded-3xl shadow-lg border-b-8 border-indigo-200 hover:border-indigo-400 transition-colors cursor-pointer group flex items-center gap-4" onClick={() => onSelectGame(GamePhase.GAME_CROSSWORD)}>
+                    <div className="text-4xl group-hover:scale-110 transition-transform">📝</div>
+                    <div className="text-left">
+                        <h3 className="text-xl font-bold text-indigo-600">Crossword Mini</h3>
+                        <p className="text-sm text-gray-400">Solve the puzzle</p>
+                    </div>
+                </div>
             </div>
 
             <div className="flex gap-3">
