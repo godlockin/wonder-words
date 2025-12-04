@@ -6,6 +6,7 @@ export interface VocabularyWord {
   example: string;
   exampleChinese: string;
   imageUrl?: string; // Base64 data URI
+  loadedOrder?: number;
 }
 
 export enum GamePhase {

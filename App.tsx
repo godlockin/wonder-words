@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [learningIndex, setLearningIndex] = useState(0);
   const [finalScore, setFinalScore] = useState(0);
   const [incorrectWords, setIncorrectWords] = useState<Set<string>>(new Set());
+  const nextLoadOrder = React.useRef(1);
 
   // Start the session
   const handleStart = async (customTheme?: string) => {
@@ -24,37 +25,64 @@ const App: React.FC = () => {
     setLoadingProgress(10);
     setLoadingStatus(customTheme ? `Creating words for "${customTheme}"...` : 'Thinking of a fun theme...');
     setIncorrectWords(new Set()); // Reset mistakes
+    nextLoadOrder.current = 1; // Reset order
 
     try {
       // 1. Generate Text
       const vocabData = await generateVocabularySet(customTheme);
       setTheme(vocabData.theme);
       setWords(vocabData.words);
-      setLoadingProgress(40);
-      setLoadingStatus(`Painting pictures for "${vocabData.theme}"...`);
 
-      // 2. Generate Images (Sequential to be safe with limits/ordering, usually parallel is better but sticking to safe implementation)
-      const wordsWithImages = [...vocabData.words];
-      const batchSize = 3; // Do small batches
-
-      for (let i = 0; i < wordsWithImages.length; i += batchSize) {
-        const batch = wordsWithImages.slice(i, i + batchSize);
-        await Promise.all(batch.map(async (word) => {
-          const img = await generateWordImage(word.word, vocabData.theme);
-          if (img) word.imageUrl = img;
-        }));
-        setLoadingProgress(40 + Math.floor(((i + batchSize) / wordsWithImages.length) * 60));
-      }
-
-      setWords(wordsWithImages);
+      // IMMEDIATE TRANSITION: Go to learning phase right away!
       setLoadingProgress(100);
       setPhase(GamePhase.LEARNING);
       setLearningIndex(0);
+
+      // 2. Generate Images in Background
+      // We use a non-awaited promise chain here to let the UI render
+      generateImagesInBackground(vocabData.words, vocabData.theme);
 
     } catch (error) {
       console.error(error);
       alert("Something went wrong creating the game. Please try again!");
       setPhase(GamePhase.WELCOME);
+    }
+  };
+
+  const generateImagesInBackground = async (initialWords: VocabularyWord[], theme: string) => {
+    const wordsCopy = [...initialWords];
+    const batchSize = 3;
+
+    for (let i = 0; i < wordsCopy.length; i += batchSize) {
+      const batch = wordsCopy.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (word) => {
+        try {
+          const img = await generateWordImage(word.word, theme);
+          if (img) {
+            // Update state incrementally
+            setWords(prevWords => {
+              const updatedWords = prevWords.map(w => {
+                if (w.id === word.id) {
+                  return { ...w, imageUrl: img, loadedOrder: nextLoadOrder.current++ };
+                }
+                return w;
+              });
+
+              // Sort: Loaded words first (by loadedOrder), then unloaded words (stable/original order)
+              return updatedWords.sort((a, b) => {
+                if (a.loadedOrder !== undefined && b.loadedOrder !== undefined) {
+                  return a.loadedOrder - b.loadedOrder;
+                }
+                if (a.loadedOrder !== undefined) return -1; // a comes first
+                if (b.loadedOrder !== undefined) return 1;  // b comes first
+                return 0; // Keep original relative order
+              });
+            });
+          }
+        } catch (e) {
+          console.error("Failed to generate image for", word.word, e);
+        }
+      }));
     }
   };
 

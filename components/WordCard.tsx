@@ -14,7 +14,7 @@ const WordCard: React.FC<WordCardProps> = ({ word, showDetails = true }) => {
   const handlePlaySound = async () => {
     if (isPlaying) return;
     setIsPlaying(true);
-    
+
     try {
       // For a real production app, we might cache this audio. 
       // Here we fetch on demand to keep initial load lighter, or we could pre-fetch.
@@ -35,9 +35,12 @@ const WordCard: React.FC<WordCardProps> = ({ word, showDetails = true }) => {
         {word.imageUrl ? (
           <img src={word.imageUrl} alt={word.word} className="w-full h-full object-contain p-4" />
         ) : (
-          <div className="text-4xl">🎨</div>
+          <div className="flex flex-col items-center justify-center text-gray-400 animate-pulse">
+            <div className="text-4xl mb-2">🎨</div>
+            <div className="text-sm font-bold">Painting...</div>
+          </div>
         )}
-        <button 
+        <button
           onClick={handlePlaySound}
           className="absolute bottom-4 right-4 bg-white/90 p-3 rounded-full shadow-lg hover:bg-blue-100 transition-colors text-blue-500"
         >
@@ -58,7 +61,7 @@ const WordCard: React.FC<WordCardProps> = ({ word, showDetails = true }) => {
           <h2 className="text-4xl font-extrabold text-gray-800 mb-2">{word.word}</h2>
           <p className="text-gray-500 font-mono text-lg mb-1">/{word.pronunciation}/</p>
           <p className="text-2xl font-bold text-blue-500 mb-4">{word.chinese}</p>
-          
+
           <div className="bg-blue-50 p-3 rounded-xl">
             <p className="text-gray-700 italic">"{word.example}"</p>
             <p className="text-gray-500 text-sm mt-1">{word.exampleChinese}</p>
